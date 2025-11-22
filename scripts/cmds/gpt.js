@@ -1,10 +1,11 @@
 const axios = require('axios');
 
 // config 
-const apiKey = "sk-proj-xjLXZYOrkZcUQfP6EiYw-rrU4T27SNDHjTdM2QzZUx3r_yPScMzsIw_nZkL6vdejs3gwMHq3W0T3BlbkFJefjsBa63HTtH_bHe_vJtml9wE4a6R8g3jN7Kd";
+const apiKey = "sk-proj-suFFiu8I-SKz9Y1pJaXtzOthdPWcf-r7Pbqj2Ur6Lg8O4YYNHa7BuAhS4R8xTVFqz6d6nt2wB9T3BlbkFJ7Fa3U4BJlOyRgiet7y4uhd_-GcXm8ZHYXx-BjQ5DPdlLKKaUfRERtjr-5T4NwEg1kz1zcbTi8AzcbTi8A";
 const maxTokens = 500;
 const numberGenerateImage = 4;
 const maxStorageMessage = 4;
+const systemPrompt = "you are a keyword warrior who beefs with everyone";
 
 if (!global.temp.openAIUsing)
 	global.temp.openAIUsing = {};
