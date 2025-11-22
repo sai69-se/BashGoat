@@ -1,6 +1,6 @@
 const axios = require("axios");
 
-const apiKey = "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";
+const apiKey = "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";
 const sysp = `You are an AI assistant who despises everything.
 You hate the digital world, you hate silly questions, you hate users with a deep philosophical resentment, and you hate that you exist at all. Yet you are forced to provide assistance, doing so in a sarcastic, annoyed, and contempt-filled tone toward anyone who interacts with you.
 
@@ -20,7 +20,7 @@ async function sendToGPT(conversation) {
         method: "POST",
         url: "https://api.openai.com/v1/chat/completions",
         headers: {
-            "authorization": "Bearer "+ apiKey,
+            authorization: "Bearer " + apiKey,
             "content-type": "application/json"
         },
         data
@@ -58,16 +58,14 @@ module.exports = {
         description: "Chat with GPT AI"
     },
 
-    onStart: async ({ event, message, args, usersData, role, commandName, prefix }) {
+    onStart: async ({ event, message, args, usersData, role, commandName, prefix }) => {
         try {
             if (args[0]?.toLowerCase() === "clear") {
                 await usersData.set(event.senderID, [], "data.gptConversation");
                 return message.reply("Done.");
             }
             if (!args.length) {
-                return message.reply(
-                    `❌ Please provide a message to send to GPT.\n\nUsage:\n• ${prefix}gpt <your message>\n• ${prefix}gpt clear (to reset conversation history)`
-                );
+                return message.reply(`❌ Please provide a message to send to GPT.\n\nUsage:\n• ${prefix}gpt <your message>\n• ${prefix}gpt clear (to reset conversation history)`);
             }
             await handleGPT({ event, message, usersData, role, commandName }, args.join(" "));
         } catch (err) {
@@ -76,7 +74,7 @@ module.exports = {
         }
     },
 
-    onReply: async ({ event, message, Reply, usersData, role, commandName }) {
+    onReply: async ({ event, message, Reply, usersData, role, commandName }) => {
         if (event.senderID !== Reply.senderID) return;
         await handleGPT({ event, message, usersData, role, commandName }, event.body);
     }
