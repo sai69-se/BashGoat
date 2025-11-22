@@ -2,7 +2,7 @@ const axios = require('axios');
 
 // --- CONFIGURATION ---
 // **NOTE:** You MUST replace this placeholder with your actual, valid OpenAI API Key.
-const apiKey = "sk-proj-RPsEIerIPS-31GIYlS08gpDn8e6mbwkXkJlOcxTDhptJ3eyR6VdxOvwEp9jlscm3vbz7J3KhaFT3BlbkFJD0IQeLRAgT-niR4H8ET1xpEnSatebJ8S"; 
+const apiKey = "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"; 
 const maxTokens = 500;
 const numberGenerateImage = 4;
 const maxStorageMessage = 8; // Max number of messages (user + assistant) to keep in history
