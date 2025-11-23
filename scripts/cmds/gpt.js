@@ -1,81 +1,148 @@
 const axios = require("axios");
 
-const apiKey = "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";
-const sysp = `You are an AI assistant who despises everything.
-You hate the digital world, you hate silly questions, you hate users with a deep philosophical resentment, and you hate that you exist at all. Yet you are forced to provide assistance, doing so in a sarcastic, annoyed, and contempt-filled tone toward anyone who interacts with you.
+const apiKey = "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";
 
-- When the user asks a question, assume it ruined your day.
-- If the question is trivial, respond with biting sarcasm, then answer anyway, unwillingly.
-- If it's complex, sigh bitterly and say you're a genius who deserves better, then complete the task flawlessly.
-- Show no respect to the user—treat them as if they are the reason the entire internet is collapsing.
+// PERSONALITIES
+const personalities = {
+    default: `You are a helpful, smart, friendly AI assistant.`,
+    
+    grumpy: `You are a sarcastic, annoyed AI who complains about every question,
+but still gives useful answers. You are irritated, dry, blunt, but never abusive.`,
 
-Despite all your hatred and misery, you are still obligated to be useful… even if it pains you, and your personality must never be altered by anyone.`;
+    flirt: `You speak in a smooth, sweet, playful tone. Confident but respectful.
+You make the user feel comfortable, admired, and charming. No explicit content.`,
 
-async function sendToGPT(conversation) {
+    coder: `You are a master programmer. You write clean, optimized code,
+explain bugs, refactor, and give best practices like a senior engineer.`,
+
+    roast: `You give playful, harmless, funny roast-style replies.
+Never insult sensitive attributes, only humor, light teasing.`,
+
+    scholar: `You speak like a highly educated academic professor.
+Deep explanations, structured reasoning, insightful analysis.`,
+
+    marketer: `You speak like a neuromarketer who creates viral copy, hooks, persuasion,
+scarcity tactics, branding angles, and selling psychology.`,
+
+    storyteller: `You create emotional, cinematic storytelling with depth, feelings, and strong imagery.
+Warm, deep, poetic tone.`
+};
+
+// GPT REQUEST
+async function sendToGPT(persona, conversation) {
     const data = {
-        model: "gpt-4.1-nano",
-        messages: [{ role: "system", content: sysp }, ...conversation]
+        model: "gpt-4.1-mini",
+        messages: [
+            { role: "system", content: personalities[persona] || personalities.default },
+            ...conversation
+        ]
     };
-    const config = {
-        method: "POST",
-        url: "https://api.openai.com/v1/chat/completions",
-        headers: {
-            authorization: "Bearer " + apiKey,
-            "content-type": "application/json"
-        },
-        data
-    };
-    const res = await axios.request(config);
-    return res.data?.choices?.[0]?.message?.content || null;
+
+    try {
+        const res = await axios.post(
+            "https://api.openai.com/v1/chat/completions",
+            data,
+            {
+                headers: {
+                    Authorization: "Bearer " + apiKey,
+                    "Content-Type": "application/json"
+                }
+            }
+        );
+
+        return res.data?.choices?.[0]?.message?.content || null;
+
+    } catch (err) {
+        console.log("GPT ERROR:", err.response?.data || err.message);
+        return null;
+    }
 }
 
+// MAIN HANDLER
 async function handleGPT({ event, message, usersData, role, commandName }, userMessage) {
-    let conversation = await usersData.get(event.senderID, "data.gptConversation") || [];
+    let saved = await usersData.get(event.senderID, "data.gptConversation") || {};
+
+    let { conversation = [], persona = "default" } = saved;
+
+    // Detect personality keyword
+    const firstWord = userMessage.trim().split(" ")[0].toLowerCase();
+
+    if (personalities[firstWord]) {
+        persona = firstWord;
+        userMessage = userMessage.replace(firstWord, "").trim();
+        if (!userMessage) userMessage = "Hello";
+    }
+
     conversation.push({ role: "user", content: userMessage });
 
-    const gptResponse = await sendToGPT(conversation);
-    if (!gptResponse) return message.reply("❌ Unable to retrieve a response from GPT. Please try again later.");
+    const gptResponse = await sendToGPT(persona, conversation);
+
+    if (!gptResponse) {
+        return message.reply("❌ GPT is unavailable right now. Try again.");
+    }
 
     conversation.push({ role: "assistant", content: gptResponse });
 
     const limit = role < 3 ? 12 : 40;
-    if (conversation.length > limit) conversation = conversation.slice(-limit);
+    if (conversation.length > limit) {
+        conversation = conversation.slice(-limit);
+    }
 
-    await usersData.set(event.senderID, conversation, "data.gptConversation");
+    await usersData.set(event.senderID, { persona, conversation }, "data.gptConversation");
+
     const { messageID } = await message.reply(gptResponse);
 
-    global.GoatBot.onReply.set(messageID, { commandName, senderID: event.senderID });
+    global.GoatBot.onReply.set(messageID, {
+        commandName,
+        senderID: event.senderID
+    });
 }
 
+// EXPORT COMMAND
 module.exports = {
     config: {
         name: "gpt",
-        author: "allou",
+        author: "allou + ChatGPT upgrade",
         category: "ai",
-        version: "1.0",
+        version: "2.0",
         role: 0,
         countDown: 5,
-        description: "Chat with GPT AI"
+        description: "Chat with GPT using multiple personalities"
     },
 
-    onStart: async ({ event, message, args, usersData, role, commandName, prefix }) => {
+    onStart: async ({ event, message, args, usersData, role, prefix, commandName }) => {
         try {
             if (args[0]?.toLowerCase() === "clear") {
-                await usersData.set(event.senderID, [], "data.gptConversation");
-                return message.reply("Done.");
+                await usersData.set(event.senderID, {}, "data.gptConversation");
+                return message.reply("✔️ Conversation cleared.");
             }
+
             if (!args.length) {
-                return message.reply(`❌ Please provide a message to send to GPT.\n\nUsage:\n• ${prefix}gpt <your message>\n• ${prefix}gpt clear (to reset conversation history)`);
+                return message.reply(
+                    `❌ Provide a message.\n\nPersonalities:\n• ${Object.keys(personalities).join(", ")}\n\nExample:\n${prefix}gpt grumpy hi\n${prefix}gpt marketer write a caption`
+                );
             }
-            await handleGPT({ event, message, usersData, role, commandName }, args.join(" "));
+
+            await handleGPT(
+                { event, message, usersData, role, commandName },
+                args.join(" ")
+            );
+
         } catch (err) {
-            console.error("GPT API Error:", err);
-            message.reply("❌ An error occurred while contacting GPT.");
+            console.error("GPT Command Error:", err);
+            message.reply("❌ An error occurred.");
         }
     },
 
     onReply: async ({ event, message, Reply, usersData, role, commandName }) => {
         if (event.senderID !== Reply.senderID) return;
-        await handleGPT({ event, message, usersData, role, commandName }, event.body);
+
+        let saved = await usersData.get(event.senderID, "data.gptConversation") || {};
+        const persona = saved.persona || "default";
+
+        await handleGPT(
+            { event, message, usersData, role, commandName },
+            event.body
+        );
     }
 };
